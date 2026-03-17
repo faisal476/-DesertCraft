@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DesertCraft — قوانين السيرفر</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sand: #F5C842;
+    --sand-dark: #C9971A;
+    --sand-dim: rgba(245,200,66,0.08);
+    --sand-border: rgba(245,200,66,0.2);
+    --bg: #0D0B07;
+    --bg2: #131009;
+    --bg3: #1a1510;
+    --text: #EDE8DC;
+    --text-muted: #7A7060;
+    --red: #E05050;
+    --green: #5DBF80;
+    --amber: #E0A040;
+    --blue: #5090E0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  /* noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 1.5rem 4rem; position: relative; z-index: 1; }
+
+  /* HERO */
+  .hero {
+    padding: 5rem 0 3rem;
+    text-align: center;
+  }
+
+  .hero-glow {
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(245,200,66,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    margin: 0 auto 1.5rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.85; }
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    color: var(--sand);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-badges {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  }
+
+  .chip {
+    background: var(--sand-dim);
+    border: 0.5px solid var(--sand-border);
+    color: var(--sand);
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 0.5px solid rgba(245,200,66,0.12);
+    margin: 3rem 0 2rem;
+  }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 2rem;
+    background: var(--bg2);
+    padding: 6px;
+    border-radius: 12px;
+    border: 0.5px solid rgba(255,255,255,0.05);
+  }
+
+  .tab {
+    flex: 1; padding: 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--sand-dim);
+    color: var(--sand);
+    border: 0.5px solid var(--sand-border);
+  }
+
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* SECTIONS */
+  .section { display: none; animation: fadeIn 0.25s ease; }
+  .section.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* RULE CARDS */
+  .rule {
+    background: var(--bg2);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 10px;
+    display: flex; gap: 14px; align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+
+  .rule:hover { border-color: var(--sand-border); }
+
+  .rule-num {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .n-amber { background: rgba(224,160,64,0.15); color: var(--amber); }
+  .n-red   { background: rgba(224,80,80,0.15);  color: var(--red); }
+  .n-green { background: rgba(93,191,128,0.15); color: var(--green); }
+  .n-blue  { background: rgba(80,144,224,0.15); color: var(--blue); }
+
+  .rule-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .rule-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px; padding: 2px 10px;
+    border-radius: 20px; margin-top: 8px;
+    font-weight: 500;
+  }
+
+  .t-red    { background: rgba(224,80,80,0.12);   color: var(--red);   border: 0.5px solid rgba(224,80,80,0.25); }
+  .t-green  { background: rgba(93,191,128,0.12);  color: var(--green); border: 0.5px solid rgba(93,191,128,0.25); }
+  .t-amber  { background: rgba(224,160,64,0.12);  color: var(--amber); border: 0.5px solid rgba(224,160,64,0.25); }
+  .t-blue   { background: rgba(80,144,224,0.12);  color: var(--blue);  border: 0.5px solid rgba(80,144,224,0.25); }
+
+  /* CREATIVE TABLE */
+  .cr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  .cr-table th {
+    text-align: right; padding: 10px 14px;
+    color: var(--text-muted); font-weight: 500;
+    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+    background: var(--bg3);
+  }
+
+  .cr-table td {
+    padding: 12px 14px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.04);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .cr-table tr:last-child td { border-bottom: none; }
+  .cr-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%; margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .dot-green { background: var(--green); box-shadow: 0 0 6px rgba(93,191,128,0.5); }
+  .dot-red   { background: var(--red);   box-shadow: 0 0 6px rgba(224,80,80,0.5); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px rgba(224,160,64,0.5); }
+
+  .table-wrap {
+    background: var(--bg2);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .golden-rule {
+    background: rgba(245,200,66,0.06);
+    border: 0.5px solid var(--sand-border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1.25rem;
+    font-size: 13px;
+    color: var(--sand);
+    line-height: 1.7;
+  }
+
+  /* PENALTY */
+  .penalty-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg2);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 10px;
+  }
+
+  .p-circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .p-info   { background: rgba(80,144,224,0.15); color: var(--blue); }
+  .p-warn   { background: rgba(224,160,64,0.15); color: var(--amber); }
+  .p-danger { background: rgba(224,80,80,0.15);  color: var(--red); }
+  .p-fatal  { background: rgba(150,30,30,0.25);  color: #FF6666; }
+
+  .p-label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .p-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .p-desc  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .instant-box {
+    background: rgba(224,80,80,0.07);
+    border: 0.5px solid rgba(224,80,80,0.2);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1.25rem;
+    font-size: 13px;
+    color: var(--red);
+    line-height: 1.7;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 3rem 0 2rem;
+    color: var(--text-muted);
+    font-size: 12px;
+    border-top: 0.5px solid rgba(255,255,255,0.05);
+    margin-top: 3rem;
+  }
+
+  footer span { color: var(--sand); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-glow">🏜️</div>
+    <h1>DesertCraft</h1>
+    <p class="hero-sub">قوانين السيرفر الرسمية</p>
+    <div class="hero-badges">
+      <span class="chip">Survival</span>
+      <span class="chip">4 لاعبين</span>
+      <span class="chip">Creative متاح</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="tabs">
+    <button class="tab active" onclick="show('general', this)">القوانين العامة</button>
+    <button class="tab" onclick="show('creative', this)">Creative & Fly</button>
+    <button class="tab" onclick="show('penalty', this)">العقوبات</button>
+  </div>
+
+  <!-- GENERAL -->
+  <div id="general" class="section active">
+
+    <div class="rule">
+      <div class="rule-num n-amber">١</div>
+      <div>
+        <p class="rule-title">الاحترام المتبادل</p>
+        <p class="rule-desc">ممنوع الشتيمة والإهانة لأي لاعب — في الشات أو الصوت أو أي مكان.</p>
+        <span class="tag t-amber">تحذير فوري</span>
+      </div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-num n-red">٢</div>
+      <div>
+        <p class="rule-title">ممنوع الغش</p>
+        <p class="rule-desc">هاكات، كلاينتات مهكرة، exploits، أو أي ميزة خارج السيرفر — ممنوعة كلياً.</p>
+        <span class="tag t-red">Ban دائم بدون تحذير</span>
+      </div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-num n-red">٣</div>
+      <div>
+        <p class="rule-title">ممنوع التخريب والسرقة</p>
+        <p class="rule-desc">بيوت وأشياء اللاعبين الثانيين محرمة — حتى لو المكان يبدو هجور.</p>
+        <span class="tag t-red">Ban فوري</span>
+      </div>
+    </div>
+
+    <div class="rule">
+      <div class="rule-num n-amber">٤</div>
+      <div>
+        <p class="rule-title">PvP بالتراضي فقط</p>
+        <p class="rule-desc">ما تضرب أحد إلا إذا وافق صراحة — وإلا يُعتبر هجوم غير مبرر.</p>
+        <span class="tag t-amber">يحدد الأدمن العقوبة</span>
+      </div>
+    </div>
+
+
+
+  </div>
+
+  <!-- CREATIVE -->
+  <div id="creative" class="section">
+
+    <div class="table-wrap">
+      <table class="cr-table">
+        <thead>
+          <tr>
+            <th>الموقف</th>
+            <th style="text-align:center; width:140px;">الحكم</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>البناء والتصميم في منطقتك</td>
+            <td style="text-align:center;"><span class="dot dot-green"></span>مسموح</td>
+          </tr>
+          <tr>
+            <td>الطيران للتنقل داخل منطقتك</td>
+            <td style="text-align:center;"><span class="dot dot-green"></span>مسموح</td>
+          </tr>
+          <tr>
+            <td>الطيران لاستكشاف مناطق جديدة</td>
+            <td style="text-align:center;"><span class="dot dot-green"></span>مسموح بإذن</td>
+          </tr>
+          <tr>
+            <td>Creative لإصلاح بناء تضرر ببج</td>
+            <td style="text-align:center;"><span class="dot dot-amber"></span>بإذن أدمن</td>
+          </tr>
+          <tr>
+            <td>Creative لمساعدة لاعب ثاني ببنائه</td>
+            <td style="text-align:center;"><span class="dot dot-amber"></span>بإذن أدمن</td>
+          </tr>
+          <tr>
+            <td>Creative أثناء PvP أو معركة</td>
+            <td style="text-align:center;"><span class="dot dot-red"></span>ممنوع كلياً</td>
+          </tr>
+          <tr>
+            <td>نقل أيتمز من Creative لـ Survival</td>
+            <td style="text-align:center;"><span class="dot dot-red"></span>ممنوع كلياً</td>
+          </tr>
+          <tr>
+            <td>الطيران فوق بناء الثاني بدون إذن</td>
+            <td style="text-align:center;"><span class="dot dot-red"></span>ممنوع</td>
+          </tr>
+          <tr>
+            <td>Fly أثناء جمع الموارد (Farming)</td>
+            <td style="text-align:center;"><span class="dot dot-red"></span>ممنوع — يكسر التوازن</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="golden-rule">
+      ⚡ القاعدة الذهبية: Creative والطيران للبناء فقط — أي استخدام يعطيك ميزة على لاعب ثاني في Survival يُعتبر غشاً مباشراً.
+    </div>
+
+  </div>
+
+  <!-- PENALTY -->
+  <div id="penalty" class="section">
+
+    <div class="penalty-row">
+      <div class="p-circle p-info">١</div>
+      <div>
+        <p class="p-label">المرحلة الأولى</p>
+        <p class="p-title">Warning — تحذير رسمي</p>
+        <p class="p-desc">يُسجَّل في الشات أمام الكل</p>
+      </div>
+    </div>
+
+    <div class="penalty-row">
+      <div class="p-circle p-warn">٢</div>
+      <div>
+        <p class="p-label">المرحلة الثانية</p>
+        <p class="p-title">Mute / Kick</p>
+        <p class="p-desc">إسكات مؤقت أو طرد من السيرفر</p>
+      </div>
+    </div>
+
+    <div class="penalty-row">
+      <div class="p-circle p-danger">٣</div>
+      <div>
+        <p class="p-label">المرحلة الثالثة</p>
+        <p class="p-title">Temp Ban</p>
+        <p class="p-desc">حظر مؤقت — مدته يحددها الأدمن</p>
+      </div>
+    </div>
+
+    <div class="penalty-row">
+      <div class="p-circle p-fatal">٤</div>
+      <div>
+        <p class="p-label">المرحلة الرابعة</p>
+        <p class="p-title">Permanent Ban</p>
+        <p class="p-desc">حظر دائم — للحالات الشديدة</p>
+      </div>
+    </div>
+
+    <div class="instant-box">
+      ⚠️ الغش، التخريب، والسرقة من Creative يتجاوزون كل المراحل ويؤدون لـ Ban فوري دائم — بدون أي تحذير مسبق.
+    </div>
+
+  </div>
+
+  <footer>
+    صُنع بـ ❤️ لسيرفر <span>DesertCraft</span> — كل الحقوق محفوظة
+  </footer>
+
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+
+</body>
+</html>
